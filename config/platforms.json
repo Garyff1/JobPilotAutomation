@@ -1,0 +1,135 @@
+{
+  "公司官网": {
+    "level": "full_auto_prepare",
+    "description": "公司官网岗位页允许 dryRun 读取与预填写，但不允许默认提交。",
+    "allowedFields": [
+      "姓名",
+      "手机号",
+      "邮箱",
+      "求职岗位",
+      "求职城市",
+      "教育背景",
+      "自我介绍",
+      "项目经历摘要",
+      "学历",
+      "工作类型",
+      "经验年限"
+    ],
+    "blockedFields": [
+      "身份证号",
+      "身份证照片",
+      "银行卡",
+      "详细家庭住址",
+      "紧急联系人",
+      "不确定字段",
+      "性别",
+      "婚育",
+      "家庭成员",
+      "头像",
+      "照片",
+      "证件照"
+    ],
+    "loginKeywords": [
+      "登录",
+      "请登录",
+      "账号登录",
+      "扫码登录",
+      "login",
+      "signin",
+      "passport"
+    ],
+    "captchaKeywords": [
+      "验证码",
+      "captcha",
+      "Security Verification",
+      "Cloudflare",
+      "EdgeOne",
+      "滑块验证",
+      "人机验证",
+      "确认您是真人",
+      "安全验证"
+    ],
+    "riskKeywords": [
+      "收费",
+      "押金",
+      "培训费",
+      "培训贷",
+      "无薪试岗",
+      "购买课程",
+      "身份证照片",
+      "银行卡",
+      "贷款",
+      "保险",
+      "访问受限"
+    ],
+    "stopKeywords": [
+      "验证码",
+      "登录",
+      "Security Verification",
+      "Cloudflare",
+      "EdgeOne",
+      "滑块验证",
+      "访问受限",
+      "收费",
+      "押金",
+      "培训贷",
+      "无薪试岗",
+      "身份证照片",
+      "银行卡"
+    ]
+  },
+  "智联招聘": {
+    "level": "semi_auto",
+    "description": "半自动平台，有登录和风控限制，不允许自动投递或沟通。",
+    "rules": {
+      "allowReadVisibleJobText": true,
+      "allowClickApply": false,
+      "allowSendMessage": false,
+      "allowFillForm": false,
+      "stopOnCaptcha": true,
+      "stopOnLogin": true
+    },
+    "blockTriggers": [
+      "Security Verification",
+      "Tencent Cloud EdgeOne",
+      "确认您是真人",
+      "安全验证",
+      "人机验证",
+      "验证连接安全性"
+    ],
+    "allowedOperations": [
+      "读取页面可见岗位信息",
+      "生成安全报告",
+      "给用户半自动操作建议"
+    ],
+    "riskKeywords": [
+      "收费",
+      "押金",
+      "培训贷",
+      "无薪试岗",
+      "身份证照片",
+      "银行卡",
+      "访问受限",
+      "异常访问"
+    ],
+    "note": "遇到人机验证立即停止，输出风控报告，不尝试绕过。"
+  },
+  "BOSS直聘": {
+    "level": "semi_auto",
+    "description": "强登录/强风控平台，仅允许半自动辅助。",
+    "stopKeywords": ["登录", "请登录", "验证码", "滑块验证", "人机验证", "访问受限"],
+    "riskKeywords": ["收费", "押金", "培训贷", "无薪试岗", "身份证照片", "银行卡"]
+  },
+  "猎聘": {
+    "level": "semi_auto",
+    "description": "登录与风控较强的平台，仅允许半自动辅助。",
+    "stopKeywords": ["登录", "请登录", "验证码", "滑块验证", "人机验证", "访问受限"],
+    "riskKeywords": ["收费", "押金", "培训贷", "无薪试岗", "身份证照片", "银行卡"]
+  },
+  "前程无忧": {
+    "level": "semi_auto",
+    "description": "主流招聘平台，仅允许半自动辅助。",
+    "stopKeywords": ["登录", "请登录", "验证码", "滑块验证", "人机验证", "访问受限"],
+    "riskKeywords": ["收费", "押金", "培训贷", "无薪试岗", "身份证照片", "银行卡"]
+  }
+}

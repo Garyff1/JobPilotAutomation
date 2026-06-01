@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd //c echo %USERPROFILE%\\\\Desktop)",
+      "Bash(cmd //c \"echo %USERPROFILE%\\\\Desktop\")",
+      "Read(//c/Users/hehe/Desktop//**)",
+      "Bash(node scripts/full_auto_prepare_executor.js --input config/instruction.json)",
+      "Bash(node --test tests/*.test.js)",
+      "Bash(node --check src/actions/applyClicker.js)",
+      "Bash(node --check src/fullAutoPrepareRunner.js)",
+      "Bash(node --check src/state/executorState.js)",
+      "Bash(node --check src/reports/resultBuilder.js)",
+      "Bash(node -e ' *)",
+      "Bash(gh auth *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)",
+      "Bash(winget install *)",
+      "Bash(cmd *)",
+      "Read(//c/Program Files/GitHub CLI//**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//c/Users/hehe/AppData/Local/Programs/**)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe auth *)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo create JobPilotAutomation --public --description \"JobPilot automation dryRun executor: browser-based job application form detection, risk analysis, and safe field filling\" --source=. --remote=origin --push)"
+    ]
+  }
+}

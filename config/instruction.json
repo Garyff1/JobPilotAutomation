@@ -1,0 +1,80 @@
+{
+  "type": "full_auto_executor_instruction",
+  "platform": "公司官网",
+  "action": "prepare_application_form",
+  "dryRun": true,
+  "userConfirmed": false,
+  "job": {
+    "companyName": "GitLab",
+    "jobTitle": "Staff Backend Engineer",
+    "jobUrl": "https://job-boards.greenhouse.io/gitlab/jobs/8450446002",
+    "salaryText": "",
+    "locationText": ""
+  },
+  "allowedActions": [
+    "navigate",
+    "read_visible_text",
+    "detect_form_fields",
+    "fill_allowed_fields",
+    "take_screenshot",
+    "return_report",
+    "click_apply_button"
+  ],
+  "blockedActions": [
+    "submit_form_without_confirmation",
+    "bypass_captcha",
+    "login_account",
+    "upload_sensitive_documents",
+    "fill_unknown_fields",
+    "send_message"
+  ],
+  "allowedFields": [
+    "姓名",
+    "手机号",
+    "邮箱",
+    "求职岗位",
+    "求职城市",
+    "教育背景",
+    "自我介绍",
+    "项目经历摘要"
+  ],
+  "blockedFields": [
+    "身份证号",
+    "身份证照片",
+    "银行卡",
+    "详细家庭住址",
+    "紧急联系人",
+    "不确定字段"
+  ],
+  "stopConditions": [
+    "验证码",
+    "登录",
+    "Security Verification",
+    "Cloudflare",
+    "EdgeOne",
+    "滑块验证",
+    "访问受限",
+    "收费",
+    "押金",
+    "培训贷",
+    "无薪试岗",
+    "身份证照片",
+    "银行卡"
+  ],
+  "resumePolicy": {
+    "uploadResume": false,
+    "requireUserConfirmationBeforeUpload": true
+  },
+  "submitPolicy": {
+    "canSubmit": false,
+    "requireUserConfirmationBeforeSubmit": true
+  },
+  "profile": {
+    "name": "测试用户",
+    "phone": "13800138000",
+    "email": "testuser@example.com",
+    "educationSummary": "本科，计算机科学与技术",
+    "introduction": "我是一名有5年后端开发经验的软件工程师，熟悉Python、Go和分布式系统设计。",
+    "projectSummary": "曾主导多个高并发微服务架构设计与实现，负责过百万级QPS系统的性能优化。"
+  }
+}
