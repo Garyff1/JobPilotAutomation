@@ -69,6 +69,35 @@ test("English risk negation does not set riskDetected", () => {
   assert.ok(unpaidTrial.riskFlags.includes("unpaid_trial"));
 });
 
+test("ordinary English charge usage does not trigger fee risk", () => {
+  const productOps = detectRisk({ bodyText: "You will be in charge of product operations.", platformConfig: { riskKeywords: [] } });
+  assert.equal(productOps.detected, false);
+
+  const project = detectRisk({ bodyText: "The manager will oversee the charge of the project.", platformConfig: { riskKeywords: [] } });
+  assert.equal(project.detected, false);
+});
+
+test("specific English fee and sensitive field phrases still trigger risk", () => {
+  const trainingFee = detectRisk({ bodyText: "training fee required", platformConfig: { riskKeywords: [] } });
+  assert.equal(trainingFee.detected, true);
+  assert.ok(trainingFee.riskFlags.includes("training_fee"));
+
+  const applicationFee = detectRisk({ bodyText: "application fee required", platformConfig: { riskKeywords: [] } });
+  assert.equal(applicationFee.detected, true);
+  assert.ok(applicationFee.riskFlags.includes("fee"));
+
+  const bankCard = detectRisk({ bodyText: "bank card required", platformConfig: { riskKeywords: [] } });
+  assert.equal(bankCard.detected, true);
+  assert.ok(bankCard.riskFlags.includes("bank_card"));
+
+  const noFee = detectRisk({ bodyText: "no fee required", platformConfig: { riskKeywords: [] } });
+  assert.equal(noFee.detected, false);
+
+  const unpaidTrial = detectRisk({ bodyText: "unpaid trial", platformConfig: { riskKeywords: [] } });
+  assert.equal(unpaidTrial.detected, true);
+  assert.ok(unpaidTrial.riskFlags.includes("unpaid_trial"));
+});
+
 test("rate limiter calculates remaining wait from last run", () => {
   const now = Date.now();
   const fs = require("node:fs");

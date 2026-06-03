@@ -37,3 +37,21 @@
 - **P1** — 应该修复，影响可靠性或准确性
 - **P2** — 建议修复，影响体验或可维护性
 - **P3** — 值得改进，不影响当前功能
+
+## 提交前演示风险小修记录（2026-06-03）
+
+### 已修复
+
+- R1 validateInstruction 锁死“公司官网”：已修复，改为基于 `platformConfig.level` 判断是否允许 `full_auto_prepare`。
+- R2 导航无重试：已修复，`navigateWithRetry` 支持 3 次重试和退避。
+- R3 导航后硬等 2s：已修复，改为 `waitForPageReadiness` 信号检测。
+- R6 连续执行无请求间隔：已修复，已集成 `rateLimiter.js`。
+- P1 英文 `charge` 假阳性：已修复，移除单独 `charge` 风险词，仅保留 `application fee`、`processing fee`、`charge required`、`payment required`、`pay to apply`、`training fee`、`deposit`、`bank card required`、`unpaid trial` 等更明确风险表达。
+- 工程安全：`.gitignore` 已补充 `.claude/`，本地 `.claude/settings.local.json` 已从 git 跟踪中移除但未删除本地文件。
+
+### 暂缓
+
+- R4 `captchaDetector` 的 `verify` 选择器偏宽：当前仅 warning，不阻断流程，暂缓。
+- R5 `englishRiskMap` 死代码：暂缓。
+- `CLASSIFY_FIELDS` 阶段空转：暂缓。
+- 其他非演示风险问题：暂缓到下一轮工程化处理。
