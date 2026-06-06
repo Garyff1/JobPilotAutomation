@@ -9,7 +9,8 @@ const LAST_RUN_PATH = path.join(TMP_DIR, "last_run.json");
 const DEFAULT_INTERVALS = {
   job_check: 3000,
   platform_probe: 5000,
-  full_auto_prepare: 5000
+  full_auto_prepare: 5000,
+  semi_auto_job_inspect: 5000
 };
 
 function readLastRun() {

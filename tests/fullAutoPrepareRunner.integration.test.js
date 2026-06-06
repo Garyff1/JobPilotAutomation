@@ -63,8 +63,12 @@ test("dryRun safe flow builds a complete executor result", async () => {
   assert.ok(stages.includes("NAVIGATE"));
   assert.ok(stages.includes("DETECT_SECURITY"));
   assert.ok(stages.includes("COLLECT_FIELDS"));
+  assert.ok(stages.includes("CLASSIFY_FIELDS"));
   assert.ok(stages.includes("FILL_FIELDS"));
   assert.ok(stages.includes("BUILD_REPORT"));
+  const classifyStage = result.executionTrace.find((item) => item.stage === "CLASSIFY_FIELDS");
+  assert.match(classifyStage.message, /Classified/);
+  assert.equal(result.fieldClassificationSummary.allowedCount >= 1, true);
 });
 
 test("captcha detection stops before filling fields", async () => {

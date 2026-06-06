@@ -42,7 +42,7 @@ async function fillSelectField(page, field, value) {
   }
 }
 
-async function fillAllowedFields(page, fields, instruction, platformConfig, classifyField, buildProfileValues) {
+async function fillAllowedFields(page, fields, instruction, platformConfig, classifyField, buildProfileValues, classificationResult = null) {
   const values = buildProfileValues(instruction);
   const testValueKeys = values.__testValueKeys || new Set();
   const fieldsFilled = [];
@@ -50,7 +50,7 @@ async function fillAllowedFields(page, fields, instruction, platformConfig, clas
   const unknownFields = [];
   const filledKeys = new Set();
   let testValueUsed = false;
-  const classifiedFields = fields.map((field) => ({
+  const classifiedFields = classificationResult?.classifiedFields || fields.map((field) => ({
     field,
     classification: classifyField(field, instruction, platformConfig)
   }));

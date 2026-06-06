@@ -1,6 +1,15 @@
 # JobPilot Automation
 
-招聘平台浏览器 dryRun 执行器。自动导航到岗位页面，检测风控/登录/验证码，安全点击 Apply 入口，识别表单字段并预填允许的信息，生成可回填的结构化报告。
+JobPilotAutomation 不是自动海投工具，而是 JobPilot AI 的高级浏览器辅助与安全执行器模块。
+
+它主要提供两类能力：
+
+1. 公司官网 / ATS 表单 dryRun：用于受控预填写，不默认提交；
+2. 半自动岗位体检助手：用于主流招聘平台，遇到登录/验证码时由用户手动接管，系统只读取页面并生成岗位体检素材报告。
+
+本项目不自动登录、不绕过验证码、不自动投递、不自动发送 HR 消息、不上传简历。
+
+当前能力包括：自动导航到岗位页面，检测风控/登录/验证码，安全点击 Apply 入口，识别表单字段并预填允许的信息，或在主流招聘平台只读提取岗位体检素材，生成可回填的结构化报告。
 
 ## 架构
 
@@ -22,8 +31,10 @@ JobPilot (前端)          JobPilotAutomation (执行器)
 ```
 src/
 ├── fullAutoPrepareRunner.js   # 核心编排引擎（10 阶段状态机）
+├── semiAutoJobInspector.js     # 半自动岗位体检助手（只读 + 手动接管）
 ├── actions/
-│   └── applyClicker.js        # 安全点击 Apply 按钮
+│   ├── applyClicker.js        # 安全点击 Apply 按钮
+│   └── manualCheckpoint.js    # 登录/验证码手动接管点
 ├── browser/
 │   └── browserSession.js      # 浏览器创建、导航、截图
 ├── config/
@@ -41,7 +52,8 @@ src/
 │   └── fieldFiller.js         # 字段填写
 ├── reports/
 │   ├── resultBuilder.js       # 执行报告构建
-│   └── probeResultBuilder.js  # 平台探测报告构建
+│   ├── probeResultBuilder.js  # 平台探测报告构建
+│   └── semiAutoInspectResultBuilder.js # 半自动体检报告构建
 ├── state/
 │   └── executorState.js       # 状态机 + 执行追踪
 └── utils/
@@ -64,6 +76,12 @@ npm run full-auto:dryrun -- --input config/instruction.json
 
 # 保持浏览器打开以观察
 npm run full-auto:dryrun -- --input config/instruction.json --keep-open
+
+# 半自动岗位体检助手：主流平台只读检查，必要时等待用户手动处理登录/验证码
+npm run semi-auto:inspect -- --url "https://www.zhaopin.com/..." --platform "智联招聘"
+
+# 使用半自动体检示例配置
+npm run semi-auto:inspect -- --input config/semi_auto_job_inspect.example.json
 ```
 
 ## 命令参考
@@ -71,6 +89,8 @@ npm run full-auto:dryrun -- --input config/instruction.json --keep-open
 | 命令 | 说明 |
 |------|------|
 | `npm run full-auto:dryrun -- --input <file>` | 公司官网全自动填写 dryRun |
+| `npm run semi-auto:inspect -- --url <url> --platform <name>` | 半自动岗位体检助手，只读提取岗位素材 |
+| `npm run semi-auto:inspect -- --input <file>` | 从指令 JSON 运行半自动岗位体检 |
 | `npm run full-auto:dryrun -- --input <file> --keep-open` | dryRun 后保持浏览器打开 |
 | `npm run full-auto:dryrun -- --input <file> --no-rate-limit` | 跳过请求间隔限制 |
 | `npm run job:check -- --url <url>` | 单岗位页面快速安全检查 |
@@ -88,6 +108,27 @@ npm run full-auto:dryrun -- --input config/instruction.json --keep-open
 | `--keep-open` | dryRun 结束后保持浏览器打开，手动关闭 |
 | `--storage-state <path>` | Playwright storageState 文件路径（登录态持久化） |
 | `--no-rate-limit` | 跳过本次执行的请求间隔等待 |
+
+### semi-auto:inspect 选项
+
+| 选项 | 说明 |
+|------|------|
+| `--url <url>` | 岗位页面 URL |
+| `--platform <name>` | 指定平台名，如“智联招聘”“BOSS直聘” |
+| `--input <path>` | 半自动体检指令 JSON 文件路径 |
+| `--no-rate-limit` | 跳过本次执行的请求间隔等待 |
+
+半自动岗位体检助手只做：
+
+```
+打开页面 → 用户手动处理登录/验证码 → 读取可见岗位信息 → 截图 → 输出岗位体检素材报告
+```
+
+它不做：
+
+```
+自动登录 / 自动绕验证码 / 自动点击投递 / 自动沟通 / 自动上传简历 / 自动提交表单
+```
 
 ### job:check 选项
 

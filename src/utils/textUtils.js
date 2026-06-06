@@ -15,65 +15,105 @@ function unique(values) {
 
 function findKeyword(text, keywords = []) {
   const normalized = normalizeText(text);
-  return (keywords || []).find((keyword) => normalized.includes(normalizeText(keyword))) || "";
+  return (keywords || []).find((keyword) => keywordAppears(normalized, keyword)) || "";
 }
 
 function findKeywords(text, keywords = []) {
   const normalized = normalizeText(text);
-  return unique((keywords || []).filter((keyword) => normalized.includes(normalizeText(keyword))));
+  return unique((keywords || []).filter((keyword) => keywordAppears(normalized, keyword)));
+}
+
+function keywordAppears(text, keyword) {
+  const normalizedText = normalizeText(text);
+  const normalizedKeyword = normalizeText(keyword);
+  if (!normalizedKeyword) return false;
+
+  if (isAsciiKeyword(normalizedKeyword)) {
+    return new RegExp(`\\b${keywordPattern(normalizedKeyword)}\\b`, "i").test(normalizedText);
+  }
+
+  return normalizedText.includes(normalizedKeyword);
 }
 
 function hasNegatedKeyword(text, keyword) {
   const raw = String(text || "");
   const kw = String(keyword || "");
   if (!kw) return false;
-  const patterns = [
-    `无${kw}`,
-    `不${kw}`,
-    `不收${kw}`,
-    `无需${kw}`,
-    `没有${kw}`,
-    `不涉及${kw}`,
-    `非${kw}`,
-    `不需要${kw}`
+
+  const chinesePatterns = [
+    `\u65e0${kw}`,
+    `\u4e0d${kw}`,
+    `\u4e0d\u6536${kw}`,
+    `\u65e0\u9700${kw}`,
+    `\u6ca1\u6709${kw}`,
+    `\u4e0d\u6d89\u53ca${kw}`,
+    `\u975e${kw}`,
+    `\u4e0d\u9700\u8981${kw}`
   ];
-  if (patterns.some((pattern) => raw.includes(pattern))) return true;
+  if (chinesePatterns.some((pattern) => raw.includes(pattern))) return true;
 
   const lower = raw.toLowerCase();
-  const normalizedKeyword = String(keyword || "").toLowerCase();
-  const normalizedKeywordPattern = escapeRegExp(normalizedKeyword).replace(/\\ /g, "\\s+");
-  if (normalizedKeyword && normalizedKeyword !== "unpaid trial") {
-    const directEnglishNegations = [
-      new RegExp(`\\bno\\s+${normalizedKeywordPattern}s?\\b`, "i"),
-      new RegExp(`\\bwithout\\s+${normalizedKeywordPattern}s?\\b`, "i"),
-      new RegExp(`\\b${normalizedKeywordPattern}\\s+(is\\s+)?not\\s+required\\b`, "i"),
-      new RegExp(`\\b${normalizedKeywordPattern}\\s+(is\\s+)?not\\s+needed\\b`, "i")
-    ];
-    if (directEnglishNegations.some((pattern) => pattern.test(lower))) return true;
+  const normalizedKeyword = normalizeText(keyword);
+  if (normalizedKeyword === "unpaid trial") return false;
+
+  const englishKeywords = englishAliasesForKeyword(kw, normalizedKeyword);
+  if (englishKeywords.some((englishKeyword) => hasDirectEnglishNegation(lower, englishKeyword))) {
+    return true;
   }
-  if ((normalizedKeyword === "fee" || normalizedKeyword === "fees" || normalizedKeyword === "charge") && lower.includes("free of charge")) return true;
+
+  return englishKeywords.some((englishKeyword) => isFeeRelatedEnglishKeyword(englishKeyword)) &&
+    /\bfree\s+of\s+charge\b/i.test(lower);
+}
+
+function englishAliasesForKeyword(rawKeyword, normalizedKeyword) {
   const englishRiskMap = {
-    "押金": ["deposit"],
-    "收费": ["fee", "fees", "charge"],
-    "培训费": ["training fee", "training fees"],
-    "培训贷": ["training loan"],
-    "身份证照片": ["id photo", "identity photo"],
-    "银行卡": ["bank card", "bank account"]
+    "\u62bc\u91d1": ["deposit"],
+    "\u6536\u8d39": ["fee", "fees", "application fee", "processing fee"],
+    "\u57f9\u8bad\u8d39": ["training fee", "training fees"],
+    "\u57f9\u8bad\u8d37": ["training loan"],
+    "\u8eab\u4efd\u8bc1\u7167\u7247": ["id photo", "identity photo"],
+    "\u94f6\u884c\u5361": ["bank card", "bank account"]
   };
-  const englishKeywords = englishRiskMap[kw] || [normalizedKeyword];
-  const negativePrefixes = ["no ", "without ", "not required", "not needed", "free of charge"];
-  return englishKeywords.some((englishKeyword) => {
-    if (!englishKeyword) return false;
-    if (lower.includes("unpaid trial") && englishKeyword.includes("paid")) return false;
-    return (
-      lower.includes(`no ${englishKeyword}`) ||
-      lower.includes(`without ${englishKeyword}`) ||
-      lower.includes(`${englishKeyword} not required`) ||
-      lower.includes(`${englishKeyword} not needed`) ||
-      (["fee", "fees", "charge"].includes(englishKeyword) && lower.includes("free of charge")) ||
-      negativePrefixes.some((prefix) => lower.includes(`${prefix}${englishKeyword}`))
-    );
-  });
+
+  const aliases = englishRiskMap[rawKeyword] || [normalizedKeyword];
+  if (normalizedKeyword === "fee" || normalizedKeyword === "fees") {
+    aliases.push("application fee", "processing fee");
+  }
+  return unique(aliases.map(normalizeText));
+}
+
+function hasDirectEnglishNegation(lowerText, keyword) {
+  if (!keyword) return false;
+  const pattern = keywordPattern(keyword);
+  const negations = [
+    new RegExp(`\\bno\\s+${pattern}s?\\b`, "i"),
+    new RegExp(`\\bwithout\\s+${pattern}s?\\b`, "i"),
+    new RegExp(`\\b${pattern}\\s+(is\\s+)?not\\s+required\\b`, "i"),
+    new RegExp(`\\b${pattern}\\s+(is\\s+)?not\\s+needed\\b`, "i")
+  ];
+  return negations.some((negation) => negation.test(lowerText));
+}
+
+function isFeeRelatedEnglishKeyword(value) {
+  const normalized = normalizeText(value);
+  return [
+    "fee",
+    "fees",
+    "charge",
+    "application fee",
+    "processing fee",
+    "charge required",
+    "payment required",
+    "pay to apply"
+  ].includes(normalized);
+}
+
+function keywordPattern(value) {
+  return escapeRegExp(value).replace(/\\ /g, "\\s+");
+}
+
+function isAsciiKeyword(value) {
+  return /^[a-z0-9][a-z0-9\s_-]*$/i.test(value);
 }
 
 function escapeRegExp(value) {
@@ -96,6 +136,9 @@ module.exports = {
   unique,
   findKeyword,
   findKeywords,
+  keywordAppears,
   hasNegatedKeyword,
+  isFeeRelatedEnglishKeyword,
+  keywordPattern,
   matchesOption
 };

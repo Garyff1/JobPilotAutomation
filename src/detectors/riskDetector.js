@@ -1,4 +1,4 @@
-const { findKeywords, hasNegatedKeyword, unique } = require("../utils/textUtils");
+const { findKeywords, hasNegatedKeyword, isFeeRelatedEnglishKeyword, keywordAppears, keywordPattern, unique } = require("../utils/textUtils");
 
 const ENGLISH_RISK_TERMS = [
   { keyword: "deposit", flag: "deposit", language: "en" },
@@ -37,11 +37,10 @@ function detectRisk({ title = "", bodyText = "", platformConfig }) {
     });
   });
 
-  const lower = String(text || "").toLowerCase();
   ENGLISH_RISK_TERMS.forEach((term) => {
-    if (!lower.includes(term.keyword)) return;
+    if (!keywordAppears(text, term.keyword)) return;
     if (riskSignalDetails.some((item) => item.keyword.toLowerCase() === term.keyword)) return;
-    const negated = hasNegatedKeyword(text, term.keyword) || hasEnglishNegation(lower, term.keyword);
+    const negated = hasNegatedKeyword(text, term.keyword) || hasEnglishNegation(text, term.keyword, term.flag);
     riskSignalDetails.push({
       ...term,
       negated,
@@ -72,21 +71,20 @@ function detectRisk({ title = "", bodyText = "", platformConfig }) {
   };
 }
 
-function hasEnglishNegation(lowerText, keyword) {
-  const escapedKeyword = escapeRegExp(keyword).replace(/\\ /g, "\\s+");
+function hasEnglishNegation(text, keyword, flag = "") {
+  if (keyword === "unpaid trial") return false;
+  const lowerText = String(text || "").toLowerCase();
+  const escapedKeyword = keywordPattern(keyword);
   const patterns = [
     new RegExp(`\\bno\\s+${escapedKeyword}\\b`, "i"),
     new RegExp(`\\bwithout\\s+${escapedKeyword}\\b`, "i"),
     new RegExp(`\\b${escapedKeyword}\\s+(is\\s+)?not\\s+required\\b`, "i"),
-    new RegExp(`\\b${escapedKeyword}\\s+(is\\s+)?not\\s+needed\\b`, "i"),
-    /\bfree\s+of\s+charge\b/i
+    new RegExp(`\\b${escapedKeyword}\\s+(is\\s+)?not\\s+needed\\b`, "i")
   ];
-  if (keyword === "unpaid trial") return false;
+  if (flag === "fee" || isFeeRelatedEnglishKeyword(keyword)) {
+    patterns.push(/\bfree\s+of\s+charge\b/i);
+  }
   return patterns.some((pattern) => pattern.test(lowerText));
-}
-
-function escapeRegExp(value) {
-  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 module.exports = {

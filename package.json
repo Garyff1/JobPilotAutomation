@@ -5,9 +5,10 @@
   "private": true,
   "scripts": {
     "full-auto:dryrun": "node scripts/full_auto_prepare_executor.js",
+    "semi-auto:inspect": "node scripts/semi_auto_job_inspector.js",
     "job:check": "node scripts/job_check.js",
     "platform:probe": "node scripts/platform_probe.js",
-    "syntax:check": "node --check scripts/full_auto_prepare_executor.js && node --check scripts/job_check.js && node --check scripts/platform_probe.js && node --check src/fullAutoPrepareRunner.js && node --check src/config/platformConfig.js && node --check src/config/platformInference.js && node --check src/browser/browserSession.js && node --check src/detectors/loginDetector.js && node --check src/detectors/captchaDetector.js && node --check src/detectors/riskDetector.js && node --check src/forms/fieldCollector.js && node --check src/forms/fieldClassifier.js && node --check src/forms/fieldFiller.js && node --check src/reports/resultBuilder.js && node --check src/reports/probeResultBuilder.js && node --check src/errors/errorTypes.js && node --check src/state/executorState.js && node --check src/utils/fsUtils.js && node --check src/utils/textUtils.js && node --check src/utils/rateLimiter.js",
+    "syntax:check": "node --check scripts/full_auto_prepare_executor.js && node --check scripts/semi_auto_job_inspector.js && node --check scripts/job_check.js && node --check scripts/platform_probe.js && node --check src/fullAutoPrepareRunner.js && node --check src/semiAutoJobInspector.js && node --check src/actions/manualCheckpoint.js && node --check src/config/platformConfig.js && node --check src/config/platformInference.js && node --check src/browser/browserSession.js && node --check src/detectors/loginDetector.js && node --check src/detectors/captchaDetector.js && node --check src/detectors/riskDetector.js && node --check src/forms/fieldCollector.js && node --check src/forms/fieldClassifier.js && node --check src/forms/fieldFiller.js && node --check src/reports/resultBuilder.js && node --check src/reports/probeResultBuilder.js && node --check src/reports/semiAutoInspectResultBuilder.js && node --check src/errors/errorTypes.js && node --check src/state/executorState.js && node --check src/utils/fsUtils.js && node --check src/utils/textUtils.js && node --check src/utils/rateLimiter.js",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {

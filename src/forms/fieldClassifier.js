@@ -168,6 +168,51 @@ function classifyField(field, instruction, platformConfig) {
   return { kind: "unknown", label: labelForResult(field), reason: "no_allowed_rule_match" };
 }
 
+function classifyFields(fields = [], instruction = {}, platformConfig = {}) {
+  const classifiedFields = (fields || []).map((field) => ({
+    field,
+    classification: classifyField(field, instruction, platformConfig)
+  }));
+  const allowedFields = [];
+  const blockedFields = [];
+  const unknownFields = [];
+  const duplicateFields = [];
+  const safeOptionalFields = [];
+  const seenAllowedKeys = new Set();
+
+  classifiedFields.forEach((item) => {
+    const classification = item.classification || {};
+    const normalizedKey = classification.normalizedFieldKey || classification.valueKey || classification.label || "";
+
+    if (classification.kind === "allowed") {
+      allowedFields.push(item);
+      if (classification.safeOptional) safeOptionalFields.push(item);
+      if (normalizedKey && seenAllowedKeys.has(normalizedKey)) {
+        duplicateFields.push(item);
+      } else if (normalizedKey) {
+        seenAllowedKeys.add(normalizedKey);
+      }
+      return;
+    }
+
+    if (classification.kind === "blocked") {
+      blockedFields.push(item);
+      return;
+    }
+
+    unknownFields.push(item);
+  });
+
+  return {
+    classifiedFields,
+    allowedFields,
+    blockedFields,
+    unknownFields,
+    duplicateFields,
+    safeOptionalFields
+  };
+}
+
 function isRuleAllowed(rule, allowedFields = []) {
   const normalizedAllowed = new Set((allowedFields || []).map((field) => normalizeText(field)));
   const compactAllowed = new Set((allowedFields || []).map((field) => compactText(field)));
@@ -207,5 +252,6 @@ module.exports = {
   FIELD_RULES,
   buildProfileValues,
   classifyField,
+  classifyFields,
   labelForResult
 };

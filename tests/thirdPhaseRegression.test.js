@@ -5,6 +5,7 @@ const { getPlatformConfig } = require("../src/config/platformConfig");
 const { validateInstruction } = require("../src/fullAutoPrepareRunner");
 const { detectCaptcha } = require("../src/detectors/captchaDetector");
 const { detectRisk } = require("../src/detectors/riskDetector");
+const { hasNegatedKeyword } = require("../src/utils/textUtils");
 const { getRateLimitWaitMs } = require("../src/utils/rateLimiter");
 const { navigateWithRetry } = require("../src/browser/browserSession");
 
@@ -96,6 +97,28 @@ test("specific English fee and sensitive field phrases still trigger risk", () =
   const unpaidTrial = detectRisk({ bodyText: "unpaid trial", platformConfig: { riskKeywords: [] } });
   assert.equal(unpaidTrial.detected, true);
   assert.ok(unpaidTrial.riskFlags.includes("unpaid_trial"));
+});
+
+test("free of charge only negates fee-like risk terms", () => {
+  const mixed = detectRisk({
+    bodyText: "All equipment provided free of charge. Bank card required.",
+    platformConfig: { riskKeywords: [] }
+  });
+  assert.equal(mixed.detected, true);
+  assert.ok(mixed.riskFlags.includes("bank_card"));
+
+  const safeFee = detectRisk({
+    bodyText: "No application fee. Equipment is free of charge.",
+    platformConfig: { riskKeywords: [] }
+  });
+  assert.equal(safeFee.detected, false);
+});
+
+test("English negation uses word boundaries instead of substrings", () => {
+  assert.equal(hasNegatedKeyword("no feedback will be provided", "fee"), false);
+  assert.equal(hasNegatedKeyword("no depository institution relationship", "deposit"), false);
+  assert.equal(hasNegatedKeyword("no fee required", "fee"), true);
+  assert.equal(hasNegatedKeyword("no deposit required", "deposit"), true);
 });
 
 test("rate limiter calculates remaining wait from last run", () => {

@@ -1,0 +1,7 @@
+{
+  "type": "semi_auto_job_inspect_instruction",
+  "platform": "智联招聘",
+  "url": "https://www.zhaopin.com/",
+  "dryRun": true,
+  "allowManualCheckpoint": true
+}

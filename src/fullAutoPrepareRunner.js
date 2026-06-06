@@ -5,7 +5,7 @@ const { detectLogin } = require("./detectors/loginDetector");
 const { detectCaptcha } = require("./detectors/captchaDetector");
 const { detectRisk } = require("./detectors/riskDetector");
 const { collectFields } = require("./forms/fieldCollector");
-const { classifyField, buildProfileValues } = require("./forms/fieldClassifier");
+const { classifyField, classifyFields, buildProfileValues } = require("./forms/fieldClassifier");
 const { fillAllowedFields } = require("./forms/fieldFiller");
 const { baseResult, withTrace } = require("./reports/resultBuilder");
 const { ERROR_TYPES, classifyError } = require("./errors/errorTypes");
@@ -35,6 +35,7 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
   const detectLoginFn = deps.detectLogin || detectLogin;
   const detectRiskFn = deps.detectRisk || detectRisk;
   const collectFieldsFn = deps.collectFields || collectFields;
+  const classifyFieldsFn = deps.classifyFields || classifyFields;
   const fillAllowedFieldsFn = deps.fillAllowedFields || fillAllowedFields;
   const takeScreenshotFn = deps.takeScreenshot || takeScreenshot;
   const closeBrowserSessionFn = deps.closeBrowserSession || closeBrowserSession;
@@ -44,6 +45,8 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
 
   const state = new ExecutorState();
   let session;
+  let beforeApplySecurityCheck = null;
+  let afterApplySecurityCheck = null;
   const initialPlatformConfig = getPlatformConfigFn(instruction?.platform);
   const configuredAutomationLevel = initialPlatformConfig?.level || "manual";
   const platformAccepted = ALLOWED_AUTOMATION_LEVELS.has(configuredAutomationLevel);
@@ -106,6 +109,7 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
       detectLoginFn({ page: session.page, url: finalUrl, bodyText, platformConfig })
     ]);
     const riskDetection = detectRiskFn({ title, bodyText, platformConfig });
+    beforeApplySecurityCheck = buildSecurityCheck({ captchaDetection, loginDetection, riskDetection });
 
     const shouldStopForCaptcha = captchaDetection.detected && captchaDetection.confidence !== "low";
     const shouldStopForLogin = loginDetection.detected && loginDetection.confidence === "high";
@@ -129,6 +133,8 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
           ...(captchaDetection.warnings || []),
           ...(riskDetection.warnings || [])
         ],
+        beforeApplySecurityCheck,
+        afterApplySecurityCheck,
         screenshotPath,
         stopped: true,
         stopReason,
@@ -151,6 +157,7 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
           detectLoginFn({ page: session.page, url: afterUrl, bodyText: afterBody, platformConfig })
         ]);
         const afterRisk = detectRiskFn({ title: afterTitle, bodyText: afterBody, platformConfig });
+        afterApplySecurityCheck = buildSecurityCheck({ captchaDetection: afterCaptcha, loginDetection: afterLogin, riskDetection: afterRisk });
         const afterStopCaptcha = afterCaptcha.detected && afterCaptcha.confidence !== "low";
         const afterStopLogin = afterLogin.detected && afterLogin.confidence === "high";
         const afterStopRisk = afterRisk.detected && afterRisk.confidence === "high";
@@ -170,6 +177,8 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
               ...(afterCaptcha.warnings || []),
               ...(afterRisk.warnings || [])
             ],
+            beforeApplySecurityCheck,
+            afterApplySecurityCheck,
             screenshotPath: ssPath, stopped: true, stopReason: sr,
             errorType: afterStopCaptcha ? ERROR_TYPES.CAPTCHA_DETECTED : afterStopLogin ? ERROR_TYPES.LOGIN_REQUIRED : ERROR_TYPES.SECURITY_BLOCKED
           }, state);
@@ -190,11 +199,13 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
 
     state.start(STAGES.CLASSIFY_FIELDS);
     currentStage = STAGES.CLASSIFY_FIELDS;
-    state.done("Field classification prepared.");
+    const classificationResult = classifyFieldsFn(collection.fields, instruction, platformConfig);
+    const fieldClassificationSummary = buildFieldClassificationSummary(classificationResult);
+    state.done(`Classified ${collection.fields.length} field(s): ${fieldClassificationSummary.allowedCount} allowed, ${fieldClassificationSummary.blockedCount} blocked, ${fieldClassificationSummary.unknownCount} unknown.`);
 
     state.start(STAGES.FILL_FIELDS);
     currentStage = STAGES.FILL_FIELDS;
-    const fillResult = await fillAllowedFieldsFn(session.page, collection.fields, instruction, platformConfig, classifyField, buildProfileValues);
+    const fillResult = await fillAllowedFieldsFn(session.page, collection.fields, instruction, platformConfig, classifyField, buildProfileValues, classificationResult);
     state.done(`Filled ${fillResult.fieldsFilled.length} field(s).`);
 
     state.start(STAGES.SCREENSHOT);
@@ -204,22 +215,25 @@ async function runFullAutoPrepare({ instruction, keepOpen = false, storageStateP
 
     state.start(STAGES.BUILD_REPORT);
     currentStage = STAGES.BUILD_REPORT;
+    const finalSecurityCheck = afterApplySecurityCheck || beforeApplySecurityCheck || buildSecurityCheck({ captchaDetection, loginDetection, riskDetection });
     result = {
       ...result,
       formDetected: collection.fields.length > 0,
       fieldsFilled: fillResult.fieldsFilled,
       fieldsSkipped: fillResult.fieldsSkipped,
       unknownFields: fillResult.unknownFields,
+      fieldClassificationSummary,
       testValueUsed: Boolean(fillResult.testValueUsed),
-      captchaDetected: false,
-      loginDetected: false,
-      riskDetected: riskDetection.detected && riskDetection.confidence === "high",
-      riskFlags: riskDetection.riskFlags || [],
-      riskSignalDetails: riskDetection.riskSignalDetails || [],
-      ignoredRiskSignals: riskDetection.ignoredRiskSignals || [],
+      beforeApplySecurityCheck,
+      afterApplySecurityCheck,
+      captchaDetected: Boolean(finalSecurityCheck.captchaDetected),
+      loginDetected: Boolean(finalSecurityCheck.loginDetected),
+      riskDetected: Boolean(finalSecurityCheck.riskDetected),
+      riskFlags: finalSecurityCheck.riskFlags || [],
+      riskSignalDetails: finalSecurityCheck.riskSignalDetails || [],
+      ignoredRiskSignals: finalSecurityCheck.ignoredRiskSignals || [],
       warnings: [
-        ...(captchaDetection.warnings || []),
-        ...(riskDetection.warnings || [])
+        ...(finalSecurityCheck.warnings || [])
       ],
       screenshotPath,
       stopped: false,
@@ -269,6 +283,38 @@ function buildStopReason({ captchaDetection, loginDetection, riskDetection }) {
     return `Detected risk signal: ${(riskDetection.riskFlags || riskDetection.matchedSignals || []).join(", ")}`;
   }
   return "Execution stopped by safety detector.";
+}
+
+function buildSecurityCheck({ captchaDetection = {}, loginDetection = {}, riskDetection = {} }) {
+  const captchaDetected = Boolean(captchaDetection.detected && captchaDetection.confidence !== "low");
+  const loginDetected = Boolean(loginDetection.detected && loginDetection.confidence === "high");
+  const riskDetected = Boolean(riskDetection.detected && riskDetection.confidence === "high");
+  return {
+    captchaDetected,
+    loginDetected,
+    riskDetected,
+    captchaDetection,
+    loginDetection,
+    riskDetection,
+    riskFlags: riskDetection.riskFlags || [],
+    riskSignalDetails: riskDetection.riskSignalDetails || [],
+    ignoredRiskSignals: riskDetection.ignoredRiskSignals || [],
+    warnings: [
+      ...(captchaDetection.warnings || []),
+      ...(loginDetection.warnings || []),
+      ...(riskDetection.warnings || [])
+    ]
+  };
+}
+
+function buildFieldClassificationSummary(classificationResult = {}) {
+  return {
+    allowedCount: classificationResult.allowedFields?.length || 0,
+    blockedCount: classificationResult.blockedFields?.length || 0,
+    unknownCount: classificationResult.unknownFields?.length || 0,
+    duplicateCount: classificationResult.duplicateFields?.length || 0,
+    safeOptionalCount: classificationResult.safeOptionalFields?.length || 0
+  };
 }
 
 module.exports = {

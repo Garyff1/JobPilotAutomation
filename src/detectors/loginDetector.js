@@ -5,7 +5,7 @@ async function detectLogin({ page, url = "", bodyText = "", platformConfig }) {
   const loginKeywords = platformConfig.loginKeywords || [];
   const lowerUrl = String(url || "").toLowerCase();
 
-  if (/(login|passport|signin|account)/i.test(lowerUrl)) {
+  if (/(\/login\b|\/passport\b|\/signin\b|\/sign-in\b|\/auth\b|\/account\/login\b)/i.test(lowerUrl)) {
     matchedSignals.push(`url:${url}`);
   }
 
